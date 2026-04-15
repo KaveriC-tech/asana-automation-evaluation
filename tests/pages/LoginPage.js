@@ -1,19 +1,18 @@
 class LoginPage {
   constructor(page) {
     this.page = page;
-    this.emailInput    = page.locator('#username');
-    this.passwordInput = page.locator('#password');
-    this.loginButton   = page.locator('button[type="submit"]');
   }
 
   async goto() {
     await this.page.goto('/');
+    await this.page.waitForLoadState('networkidle');
   }
 
   async login(email, password) {
-    await this.emailInput.fill(email);
-    await this.passwordInput.fill(password);
-    await this.loginButton.click();
+    await this.page.getByRole('textbox', { name: 'Username' }).fill(email);
+    await this.page.getByRole('textbox', { name: 'Password' }).fill(password);
+    await this.page.getByRole('button', { name: 'Sign in' }).click();
+    await this.page.waitForLoadState('networkidle');
   }
 }
 
