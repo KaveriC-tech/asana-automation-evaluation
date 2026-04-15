@@ -18,41 +18,40 @@ async function navigateToProject(page, projectName) {
 }
 
 async function getTaskColumn(page, taskName) {
-  // Each column is a div with class "flex flex-col w-80 bg-gray-50 rounded-lg p-4"
-  const columns = page.locator('div.flex.flex-col.w-80.bg-gray-50.rounded-lg.p-4');
+  // Each column is a div with these exact Tailwind classes from the real HTML
+  const columns = page.locator('div.flex.flex-col.w-80');
   const count = await columns.count();
 
   for (let i = 0; i < count; i++) {
     const column = columns.nth(i);
-    const taskExists = await column.locator('h3', { hasText: taskName }).count();
+    // Task names are in h3 elements
+    const taskExists = await column.locator('h3').filter({ hasText: taskName }).count();
     if (taskExists > 0) {
-      // Get the h2 text — only the direct text node, not the span with count
-      const h2 = column.locator('h2');
-      const fullText = await h2.textContent();
-      // Remove the count like "(2)" from the end
-      return fullText.replace(/\s*\(\d+\)\s*$/, '').trim();
+      // Get column header text from h2 and strip the "(2)" count
+      const h2Text = await column.locator('h2').textContent();
+      return h2Text.replace(/\s*\(\d+\)\s*$/, '').trim();
     }
   }
   return null;
 }
 
 async function getTaskTags(page, taskName) {
-  // Find the task card by h3 heading
+  // Find the exact card using h3 task name
   const card = page.locator('div.bg-white.p-4.rounded-lg').filter({
-    has: page.locator('h3', { hasText: taskName })
+    has: page.locator('h3').filter({ hasText: taskName })
   });
 
-  // Tags are spans with rounded-full class inside the card
-  const tags = card.locator('span.rounded-full');
-  const count = await tags.count();
-  const tagTexts = [];
+  // Tags are span elements with rounded-full class
+  const tagSpans = card.locator('span.rounded-full');
+  const count = await tagSpans.count();
+  const tags = [];
 
   for (let i = 0; i < count; i++) {
-    const text = await tags.nth(i).textContent();
-    tagTexts.push(text.trim());
+    const text = await tagSpans.nth(i).textContent();
+    tags.push(text.trim());
   }
 
-  return tagTexts;
+  return tags;
 }
 
 for (const tc of testCases) {
