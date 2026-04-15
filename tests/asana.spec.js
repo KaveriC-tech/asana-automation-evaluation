@@ -18,28 +18,29 @@ async function navigateToProject(page, projectName) {
 }
 
 async function getTaskColumn(page, taskName) {
-  // Get all h2 elements that have a number in brackets e.g. "To Do (2)"
-  // This filters out the page title "Web Application" which has no brackets
+  // Get all h2 elements on the page
   const allH2 = await page.locator('h2').allTextContents();
 
   for (const headerText of allH2) {
-    // Only process column headers that have "(number)" pattern
+    // Skip the page title — only process column headers with "(number)" pattern
     if (!/\(\d+\)/.test(headerText)) continue;
 
-    // Check if task exists under this column by looking at the page structure
     const cleanHeader = headerText.replace(/\s*\(\d+\)\s*$/, '').trim();
 
-    // Find all task headings under this column header
-    const columnSection = page.locator('div').filter({ hasText: headerText }).first();
-    const taskInColumn = await columnSection.getByRole('heading', { name: taskName, exact: true }).count();
+    // Search for the task name anywhere inside the column section
+    const columnSections = page.locator('div').filter({ hasText: headerText });
+    const sectionCount = await columnSections.count();
 
-    if (taskInColumn > 0) {
-      return cleanHeader;
+    for (let i = 0; i < sectionCount; i++) {
+      const section = columnSections.nth(i);
+      const taskCount = await section.getByText(taskName, { exact: true }).count();
+      if (taskCount > 0) {
+        return cleanHeader;
+      }
     }
   }
   return null;
 }
-
 async function getTaskTags(page, taskName) {
   // Known tags from the evaluation
   const knownTags = ['Feature', 'Bug', 'Design', 'High Priority'];
