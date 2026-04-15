@@ -1,0 +1,13 @@
+{
+  "name": "asana-automation-evaluation",
+  "version": "1.0.0",
+  "description": "Playwright data-driven test suite for Asana demo app",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.43.0"
+  }
+}
