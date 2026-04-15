@@ -13,57 +13,46 @@ async function login(page, email, password) {
 }
 
 async function navigateToProject(page, projectName) {
-  await page.getByText(projectName, { exact: true }).first().click();
-  await page.waitForTimeout(1000);
+  await page.getByRole('button', { name: projectName }).click();
+  await page.waitForLoadState('networkidle');
 }
 
 async function getTaskColumn(page, taskName) {
-  // Get all h2 elements on the page
-  const allH2 = await page.locator('h2').allTextContents();
+  // Each column is a div with class "flex flex-col w-80 bg-gray-50 rounded-lg p-4"
+  const columns = page.locator('div.flex.flex-col.w-80.bg-gray-50.rounded-lg.p-4');
+  const count = await columns.count();
 
-  for (const headerText of allH2) {
-    // Skip the page title — only process column headers with "(number)" pattern
-    if (!/\(\d+\)/.test(headerText)) continue;
-
-    const cleanHeader = headerText.replace(/\s*\(\d+\)\s*$/, '').trim();
-
-    // Search for the task name anywhere inside the column section
-    const columnSections = page.locator('div').filter({ hasText: headerText });
-    const sectionCount = await columnSections.count();
-
-    for (let i = 0; i < sectionCount; i++) {
-      const section = columnSections.nth(i);
-      const taskCount = await section.getByText(taskName, { exact: true }).count();
-      if (taskCount > 0) {
-        return cleanHeader;
-      }
+  for (let i = 0; i < count; i++) {
+    const column = columns.nth(i);
+    const taskExists = await column.locator('h3', { hasText: taskName }).count();
+    if (taskExists > 0) {
+      // Get the h2 text — only the direct text node, not the span with count
+      const h2 = column.locator('h2');
+      const fullText = await h2.textContent();
+      // Remove the count like "(2)" from the end
+      return fullText.replace(/\s*\(\d+\)\s*$/, '').trim();
     }
   }
   return null;
 }
+
 async function getTaskTags(page, taskName) {
-  // Known tags from the evaluation
-  const knownTags = ['Feature', 'Bug', 'Design', 'High Priority'];
+  // Find the task card by h3 heading
+  const card = page.locator('div.bg-white.p-4.rounded-lg').filter({
+    has: page.locator('h3', { hasText: taskName })
+  });
 
-  // Find the card containing the task
-  const taskHeading = page.getByRole('heading', { name: taskName, exact: true });
-  await taskHeading.waitFor({ state: 'visible' });
+  // Tags are spans with rounded-full class inside the card
+  const tags = card.locator('span.rounded-full');
+  const count = await tags.count();
+  const tagTexts = [];
 
-  const card = page.locator('div').filter({
-    has: page.getByRole('heading', { name: taskName, exact: true })
-  }).last();
-
-  const foundTags = [];
-
-  // Check each known tag — does it exist in the card?
-  for (const tag of knownTags) {
-    const tagExists = await card.getByText(tag, { exact: true }).count();
-    if (tagExists > 0) {
-      foundTags.push(tag);
-    }
+  for (let i = 0; i < count; i++) {
+    const text = await tags.nth(i).textContent();
+    tagTexts.push(text.trim());
   }
 
-  return foundTags;
+  return tagTexts;
 }
 
 for (const tc of testCases) {
